@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String?
+  name          String
+  avatar        String?
+  role          UserRole  @default(viewer)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  projects      Project[]
+  villas        Villa[]
+  invoices      Invoice[]
+}
+
+enum UserRole {
+  admin
+  manager
+  engineer
+  viewer
+}
+
+model Project {
+  id              String    @id @default(cuid())
+  name            String
+  description     String?
+  owner           String
+  consultant      String?
+  contractor      String?
+  contractValue   Float
+  duration        Int
+  startDate       DateTime
+  endDate         DateTime
+  location        String?
+  status          ProjectStatus @default(planning)
+  progress        Int       @default(0)
+  createdById     String
+  createdBy       User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  villas          Villa[]
+  documents       Document[]
+  activities      Activity[]
+  
+  @@index([createdById])
+}
+
+enum ProjectStatus {
+  planning
+  active
+  completed
+  paused
+}
+
+model Villa {
+  id              String    @id @default(cuid())
+  projectId       String
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name            String
+  number          String
+  area            Float
+  bedrooms        Int
+  bathrooms       Float
+  status          VillaStatus @default(planning)
+  progress        Int       @default(0)
+  owner           String?
+  contractor      String?
+  budget          Float
+  spent           Float     @default(0)
+  startDate       DateTime
+  endDate         DateTime
+  createdById     String
+  createdBy       User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  documents       Document[]
+  activities      Activity[]
+  
+  @@index([projectId])
+  @@index([createdById])
+}
+
+enum VillaStatus {
+  planning
+  construction
+  completed
+  delivered
+}
+
+model Invoice {
+  id              String    @id @default(cuid())
+  projectId       String
+  vendor          String
+  amount          Float
+  date            DateTime
+  dueDate         DateTime
+  status          InvoiceStatus @default(pending)
+  description     String?
+  createdById     String
+  createdBy       User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([createdById])
+}
+
+enum InvoiceStatus {
+  pending
+  approved
+  paid
+}
+
+model Document {
+  id              String    @id @default(cuid())
+  projectId       String?
+  project         Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  villaId         String?
+  villa           Villa?    @relation(fields: [villaId], references: [id], onDelete: Cascade)
+  name            String
+  url             String
+  type            DocumentType
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([projectId])
+  @@index([villaId])
+}
+
+enum DocumentType {
+  contract
+  blueprint
+  report
+  correspondence
+  image
+  video
+  other
+}
+
+model Activity {
+  id              String    @id @default(cuid())
+  projectId       String?
+  project         Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  villaId         String?
+  villa           Villa?    @relation(fields: [villaId], references: [id], onDelete: Cascade)
+  type            ActivityType
+  description     String
+  metadata        String?
+  createdAt       DateTime  @default(now())
+  
+  @@index([projectId])
+  @@index([villaId])
+}
+
+enum ActivityType {
+  created
+  updated
+  deleted
+  status_changed
+  document_added
+  comment_added
+}
